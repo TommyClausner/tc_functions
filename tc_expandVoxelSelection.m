@@ -5,6 +5,11 @@ function [voxel_list_expanded]=tc_expandVoxelSelection(dim_of_volume,voxel_list_
 % V_new = tc_expandVoxelSelection([10,10,10],V,[3,3,3]);
 % V_new will contain 9 indices of the initial volume centering around V
 
+
+if size(voxel_list_to_expand,1)>size(voxel_list_to_expand,2)
+   voxel_list_to_expand=voxel_list_to_expand'; 
+end
+
 if numel(dim_of_volume)~=numel(expand_factors) && numel(expand_factors)~=1
     error('Please provide valid expansion vector')
 end
@@ -15,16 +20,16 @@ end
 
 if numel(dim_of_volume)==2
     [seedX,seedY]=ind2sub(dim_of_volume,voxel_list_to_expand);
-    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2)),1,numel(voxel_list_to_expand));
-    inds=repmat([seedX;seedY],1,size(add_those,2)/numel(voxel_list_to_expand))+add_those;
+    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2)),1,size(voxel_list_to_expand,2));
+    inds=repmat([seedX;seedY],1,size(add_those,2)/size(voxel_list_to_expand,2))+add_those;
 elseif numel(dim_of_volume)==3
     [seedX,seedY,seedZ]=ind2sub(dim_of_volume,voxel_list_to_expand);
     
     % compute all possible deviations from the center voxel
-    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2),-expand_factors(3):1:expand_factors(3)),1,numel(voxel_list_to_expand));
+    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2),-expand_factors(3):1:expand_factors(3)),1,size(voxel_list_to_expand,2));
     
     % add all those combinations
-    inds=repmat([seedX;seedY;seedZ],1,size(add_those,2)/numel(voxel_list_to_expand))+add_those;
+    inds=repmat([seedX;seedY;seedZ],1,size(add_those,2)/size(voxel_list_to_expand,2))+add_those;
 else
     error('please provide valid dimensions')
 end
