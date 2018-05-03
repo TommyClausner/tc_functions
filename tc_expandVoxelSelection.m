@@ -15,16 +15,16 @@ end
 
 if numel(dim_of_volume)==2
     [seedX,seedY]=ind2sub(dim_of_volume,voxel_list_to_expand);
-    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2)),1,size(voxel_list_to_expand,2));
-    inds=repmat([seedX;seedY],1,size(add_those,2)/size(voxel_list_to_expand,2))+add_those;
+    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2)),1,numel(voxel_list_to_expand));
+    inds=repmat([seedX;seedY],1,size(add_those,2)/numel(voxel_list_to_expand))+add_those;
 elseif numel(dim_of_volume)==3
     [seedX,seedY,seedZ]=ind2sub(dim_of_volume,voxel_list_to_expand);
     
     % compute all possible deviations from the center voxel
-    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2),-expand_factors(3):1:expand_factors(3)),1,size(voxel_list_to_expand,2));
+    add_those=repmat(combvec(-expand_factors(1):1:expand_factors(1),-expand_factors(2):1:expand_factors(2),-expand_factors(3):1:expand_factors(3)),1,numel(voxel_list_to_expand));
     
     % add all those combinations
-    inds=repmat([seedX;seedY;seedZ],1,size(add_those,2)/size(voxel_list_to_expand,2))+add_those;
+    inds=repmat([seedX;seedY;seedZ],1,size(add_those,2)/numel(voxel_list_to_expand))+add_those;
 else
     error('please provide valid dimensions')
 end
