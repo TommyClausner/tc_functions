@@ -11,7 +11,7 @@ function [TargetTriggerOccurance,fullData] = tc_EyeChecker(varargin)
 %
 % example: TargetTriggerOccurance = tc_EyeChecker([],[1,2,3,4])
 % output: command line output of size 2 x 4 - The first row displays the
-% trigger value [1,2,3,4] and the second row, how often it coccured. The
+% trigger value [1,2,3,4] and the second row, how often it coccured. TheE
 % same data is assigned to TargetTriggerOccurance
 %
 % example output:
