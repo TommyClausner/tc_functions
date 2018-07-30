@@ -16,4 +16,5 @@ sens.chanunit = arrayfun(@(x) {'V'}, 1:size(points,1))';
 sens.elecpos = points;
 sens.label = label;
 sens.unit = 'mm';
+sens.tra = eye(numel(label))
 end
