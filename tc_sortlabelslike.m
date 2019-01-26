@@ -31,7 +31,7 @@ elseif size(find(ismember(to_be_sorted,like)==0),1)>0
 end
 
 cellfind = @(string)@(cell_contents)(strcmp(string,cell_contents));
-I=cellfun(@(x) find(x==1),cellfun(cellfind(to_be_sorted),like,'unif',0));
+I=cell2mat(cellfun(@(x) find(x==1),cellfun(cellfind(to_be_sorted),like,'unif',0),'unif',0));
 sorted=to_be_sorted(I,:);
 
 if  transpose==1

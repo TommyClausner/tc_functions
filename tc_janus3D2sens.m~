@@ -1,5 +1,5 @@
-function sens = tc_janus3D2sens(pathorfile, include, sorted_Labels)
-%% sens = tc_janus3D2sens(pathorfile, include, sorted_Labels)
+function sens = tc_janus3D2sens(pathorfile, include,sorted_Labels)
+%% sens = tc_janus3D2sens(pathorfile, include)
 % converts janus3D electrodes into fieldtrip sens
 if ischar(pathorfile)
     load(pathorfile)
@@ -7,10 +7,9 @@ else
     Electrodes=pathorfile;
 end
 
-if ~isempty(sorted_Labels)
-[~,I]=tc_sortlabelslike(Electrodes.MRI.label,sorted_Labels);
-include = I(include);
-end
+[sortedLabels,I]=tc_sortlabelslike(Electrodes.MRI.label,sorted_Labels);
+
+include = I(include)
 
 points=Electrodes.MRI.points(include,:);
 label=Electrodes.MRI.label(include,:);
