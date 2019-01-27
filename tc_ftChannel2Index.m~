@@ -1,0 +1,7 @@
+function index = tc_ftChannel2Index(origLabels, ftLabels)
+%%
+index=cellfun(@(toExclude) find(cellfun(@(fromExclude) strcmpi(strip(fromExclude,''''),strip(toExclude(2:end),'''')),origLabels)),ftLabels,'unif',0);
+index=cell2mat(index(~cellfun(@isempty,index)));
+
+
+end
