@@ -1,0 +1,9 @@
+function tc_sruct2ws(ws,matlabStruct)
+    %% tc_sruct2ws(struct,ws)
+    % creates variables from structure in workspace ws
+    varNames=fieldnames(matlabStruct)
+    for n = 1:length(varNames)
+        tmpVar=eval
+        assignin(ws,varNames{n},['matlabStruct.' varNames{n}]);
+    end
+end
