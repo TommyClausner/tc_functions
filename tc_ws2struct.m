@@ -2,9 +2,9 @@ function wsStruct=tc_ws2struct(ws,varargin)
 %%
 % usage:
 %
-% fieldsAndValues = tc_ws2sruct(ws, varargin);
+% wsStruct = tc_ws2sruct(ws, varargin);
 %
-% returns a structure from all workspace variables in workspace ws.
+% returns a structure from all workspace variables in workspace ws (e.g. 'base').
 %
 % value pairs:
 %
@@ -25,11 +25,11 @@ excludeThose=zeros(size({wsVars.name}));
 includeThose=ones(size({wsVars.name}));
 
 % iterate over key-value pairs
-for argument=1:2:length(varargin)
+for argNum=1:2:length(varargin)
     
     % get key value pair
-    key=lower(varargin{argument});
-    value=varargin{argument+1};
+    key=lower(varargin{argNum});
+    value=varargin{argNum+1};
     
     switch key
         case 'maxvarsize'
