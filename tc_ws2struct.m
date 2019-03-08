@@ -14,6 +14,14 @@ function wsStruct=tc_ws2struct(ws,varargin)
 %
 % note that the inclusion hierarchy is according to the order in which the 
 % arguments were provided.
+%
+% example:
+%
+% tc_ws2sruct('base', 'MaxVarSize', 4096, 'Exclude', {'ans', 'anotherVar'})
+%
+% returns a structure including all base workspace variables that occupy
+% less than 4096 bytes of memory, but not the variables 'ans' and 
+% 'anotherVar'
 
 % get workspace variable information
 wsVars=evalin(ws,'whos');
