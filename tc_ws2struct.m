@@ -2,7 +2,7 @@ function wsStruct=tc_ws2struct(ws,varargin)
 %%
 % usage:
 %
-% wsStruct = tc_ws2sruct(ws, varargin);
+% wsStruct = tc_ws2struct(ws, varargin);
 %
 % returns a structure from all workspace variables in workspace ws (e.g. 'base').
 %
@@ -17,7 +17,7 @@ function wsStruct=tc_ws2struct(ws,varargin)
 %
 % example:
 %
-% tc_ws2sruct('base', 'MaxVarSize', 4096, 'Exclude', {'ans', 'anotherVar'})
+% tc_ws2struct('base', 'MaxVarSize', 4096, 'Exclude', {'ans', 'anotherVar'})
 %
 % returns a structure including all base workspace variables that occupy
 % less than 4096 bytes of memory, but not the variables 'ans' and 
