@@ -1,5 +1,5 @@
-function [data_out]=tc_readeyelink(pathraw, varargin)
-%% [data_out]=tc_readeyelink(pathraw, varargin)
+function [data_out, header_out]=tc_readeyelink(pathraw, varargin)
+%% [data_out, header_out]=tc_readeyelink(pathraw, varargin)
 % Input:
 % pathraw: Path to the eye link .txt file as exported from the eye link software
 % varargin: name(s) of the column(s) that need to be extracted (e.g.'SAMPLE_INDEX','SAMPLE_INPUT','LEFT_GAZE_X')
@@ -31,11 +31,12 @@ header_string=textscan(fid, header_string, 1);
 data_raw=textscan(fid,format_spec_orig_file_col{1},'HeaderLines', 1,'EmptyValue',NaN,'delimiter',delimiter,'TreatAsEmpty',{'.'});
 fclose(fid);
 data=[];
+header_out=[];
 for n=1:size(varargin,2)
     sel_col=cell2mat(cellfun(@(x) strcmpi(x,varargin{n}),header_string,'unif',0));
     sel_col=find(sel_col);
     data=[data data_raw(:,sel_col)];
+    header_out=cat(2,header_out,header_string(sel_col));
 end
-
 data_out=cell2mat(data);
 disp(['time consumed ' num2str(toc) 's'])
