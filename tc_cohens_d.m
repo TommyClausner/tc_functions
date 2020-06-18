@@ -1,4 +1,28 @@
 function cohens_d = tc_cohens_d(data_A, varargin)
+%cohens_d = TC_COHENS_D(data_A, varargin)
+%
+%   Computes effect size for paired or independen samples (Cohen's d).
+%
+%   cohens_d = TC_COHENS_D(data_A) performs effect size computation for a 
+%   single against 0.
+%   
+%   cohens_d = TC_COHENS_D(data_A, data_B) performs effect size computation 
+%   for two indepenend samples. 
+%
+%   cohens_d = TC_COHENS_D(data_A, data_B, 'paired') performs effect size 
+%   computation for two paired samples. 
+%
+%   Note: according to Cohen and Sawilowsky:
+%
+%      d = 0.01  --> very small effect size
+%      d = 0.20  --> small effect size
+%      d = 0.50  --> medium effect size
+%      d = 0.80  --> large effect size
+%      d = 1.20  --> very large effect size
+%      d = 2.00  --> huge effect size
+%
+%   Copyright 2020 Tommy Clausner (tommy.clausner@gmail.com)
+
 independend_test = 1;
 
 if nargin < 2
