@@ -1,38 +1,32 @@
-function timeRemain=tc_toc(varargin)
-%% timeRemain=tc_toc(varargin)
-% input as name value pairs
-%
-% 'tic', instance of tic
-%
-% 'process', [currentCounter, numberOfSteps]
-% 
-% example: timeRemain = tc_toc('tic',ticInstance, 'process',[5,100])
-%
-% -> will estimate, based on the current process step (5 of 100) how much
-% time can be expected to be remaining (in seconds).
-ticSet=0;
-procSet=0;
-if numel(varargin)==0
-    toc
-else
-    for n=1:2:numel(varargin)
-        switch varargin{n}
-            case 'tic'
-                ticSet=1;
-                ticID=n+1;
-            case 'process'
-                procSet=1;
-                procID=n+1;
-        end
-    end
+function [time_left, running_avg] = tc_toc(running_avg, steps, tic_obj)
+    running_avg = cat(1, running_avg, toc(tic_obj));
+
+    avg_step_time = mean(running_avg);
+    overall_time = steps*mean(running_avg);
+    time_passed = sum(running_avg);
+    time_left = overall_time - time_passed;
     
-    if ticSet && procSet
-        timeRemain=toc(varargin{ticID})/varargin{procID}(1)*varargin{procID}(2)-toc(varargin{ticID});
-    elseif ticSet && ~procSet
-        toc(varargin{ticID})
-    elseif ~ticSet && procSet
-        timeRemain=toc/varargin{procID}(1)*varargin{procID}(2)-toc;
-    else
-        error('invalid name value pairs')
-    end
+    fprintf([ ...
+        '\noverall time: %s\n' ...
+        'avg time per iteration: %s\n' ...
+        'time passed: %s\n' ...
+        'time remaining: %s\n'], ...
+        sec2time(overall_time), ...
+        sec2time(avg_step_time), ...
+        sec2time(time_passed), ...
+        sec2time(time_left))
+    fprintf(wait_bar(time_passed, overall_time))
+end
+
+function time_str = sec2time(sec)
+    h = floor(sec / 3600);
+    m = floor((sec - h * 3600) / 60);
+    s = floor(sec - h * 3600 - m * 60);
+    time_str = sprintf("%02d:%02d:%02d", h, m, s);
+end
+
+function wait_str = wait_bar(passed_t, overall_t)
+    prop = floor(passed_t / overall_t * 20);
+    wait_str = repmat('-', 1, prop);
+    wait_str = ['I' wait_str repmat(' ', 1, 20 - length(wait_str)) 'I\n'];
 end

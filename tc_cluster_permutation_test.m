@@ -1,251 +1,225 @@
-function results = tc_cluster_permutation_test(data_A, data_B, varargin)
-%results = TC_CLUSTER_PERMUTATION_TEST(data_A, data_B, varargin)
+function results = tc_cluster_permutation_test(dataA, varargin)
+%tc_cluster_permutation_test performs ND cluster based permutation test. 
+%   The first step is to compute the t statistic for the data, which is
+%   thresholded given a certain alpha value. Afterwards the resulting
+%   binary ndarray is labelled, given a minimal connectivity. A cluster
+%   value for each cluster is computed by the sum of all t values within a
+%   certain cluster. To compute the test statistic a permutation
+%   distribution is computed similar to what is discribed above, except
+%   that the data is randomly shuffled between the two groups.
 %
-%   Implementation of the non-parametric cluster permutation test [1]. See:
+%   results = tc_cluster_permutation_test(data) single sample cluster based
+%   permutation test. The comparison is made relative to an equally sized
+%   array of zeros, which is equivalent to randomly multiplying each
+%   subject with -1 or 1. The default subject dimension is 1.
 %
-%   Performs a non-parametric cluster permutation test for paired or
-%   independend data.
+%   results is a structure with the following fields:
 %
-%   results = TC_CLUSTER_PERMUTATION_TEST(data_A) performs a single sample
-%   cluster permutation test for the hypothesis H0 that data_A has a mean
-%   of 0.
-%   
-%   data_A must be a N x D matrix, where N is the number of observations.
-%   If data_A is a 2-dimensional matrix, clusters will be found along the
-%   second dimension of data_A. If data_A is a 3-dimensional matrix, data
-%   will be clustered based on 2-dimensional data in dimensions 2 and 3 of
-%   data_A.
+%       tmap            t statistic used to form initial clusters.
 %
-%   results = TC_CLUSTER_PERMUTATION_TEST(data_A, data_B) performs an 
-%   independend sample cluster permutation test for the hypothesis H0 that 
-%   data_A and data_B are independend random samples from normal
-%   distributions with equal mean and variance.
+%       pos.h           0 or 1 for whether to reject H0 for each cluster. 
 %
-%   results = TC_CLUSTER_PERMUTATION_TEST(data_A, data_B, 'NAME',value) 
-%   specifies one or more of the following name/value pairs:
+%       pos.p           p value for each cluster.
 %
-%       Parameter           Value
-%       'alpha'             A value ALPHA between 0 and 1 specifying the
-%                           significance level as (100*ALPHA)%. Default is
-%                           0.05 for 5% significance.
-%       'num_clusters'      Number of clusters to be considered. Clusters 
-%                           are sorted (descending). Default is 1.
-%       'tail'              Directionality of test:
-%           0               positive and negative clusters (default)
-%           1               only negative clusters
-%           -1              only positive clusters
-%       'test'              String specifying the test:
-%           'paired'        Paired sample test (default).
-%           'independend'   Independend samples test.
-%       'min_cluster_size'  Minimum size of cluster (adjacent cells) for it
-%                           to be considered. Default is 0.
-%       'n_permutations'    Number of permutations. Default is 1000.
+%       pos.stats       Cluster statistic for each cluster (sum of t
+%                       values)
 %
-%   results = TC_CLUSTER_PERMUTATION_TEST(...) returns a structure with the 
-%   following fields:
-%      'H'           -- whether to reject H0
-%      'p'           -- p-values on which the decision about H0 was made
-%      'clusters'    -- positive and negative clusters. Found clusters will
-%                       be indicated by constructing a vector of zeros of
-%                       size data_A(1, :), indicating each cluster with
-%                       incrementing integers at the respective position.
-%      'T'           -- t-value map on which the permutation test was 
-%                       performed.
-%      'test_stat'   -- the test (paired or independend) that was chosen
+%       pos.clusters    Clusters found in the data. The last dimension of
+%                       this binary array separates the different clusters,
+%                       where a 1 indicates the cluster. 
 %
-%   References:
+%       neg.?           Similar to pos, but for negative clusters.
 %
-%      [1] Maris E., Oostenveld R. Nonparametric statistical testing of 
-%      EEG- and MEG-data. J Neurosci Methods. 2007 Apr 10
+%   results = tc_cluster_permutation_test(dataA, dataB) computes cluster
+%   based permutation test for the comparison of dataA and dataB. The
+%   default subject dimension is 1.
+%
+%   results = tc_cluster_permutation_test(data,...,'dim',DIM) set the
+%   dimension over which the test is computed. Default is 1.
+%
+%   results = tc_cluster_permutation_test(data,...,'alpha',ALPHA) set the
+%   test alpha. Default is 0.05.
+%
+%   results = tc_cluster_permutation_test(data,...,'tail',TAIL) set the
+%   test tail of the distribution. Can be either:
+%       -1 - Test left tail of the distribution.
+%        1 - Test right tail of the distribution.
+%        0 - Two sided test (Default). ALPHA is devided by 2. 
+%
+%   results = tc_cluster_permutation_test(data,...,'permutations',N) set
+%   the number of permutations to be performed in order to obtain the test
+%   distribution. Default is 10000.
+%
+%   results = tc_cluster_permutation_test(subject,...,'link',LINK)
+%   dimension to be linked. The clusters will be computed and afterwards
+%   all clusters will be speparated that are not connected over the LINK
+%   dimension. If set to 0 (Default), no dimension will be linked.
+%
+%   Example:
+%       results = tc_cluster_permutation_test(data, 'dim', 2, 'tail', -1, 'link', 3)
 
-%   Copyright 2020 Tommy Clausner (tommy.clausner@gmail.com)
-
-%% default variables
-alpha_thresh = 0.05;
-num_clusters = 1;
-tail = 0;
-test = 'independend';
-min_cluster_size = 0;
-n_permutations = 1000;
-
-%% accept input in form of name/value pairs
-if nargin > 2
-    for val_pair=1:2:length(varargin)
-        switch varargin{val_pair}
-            case 'alpha'
-                alpha_thresh = varargin{val_pair + 1};
-            case 'num_clusters'
-                num_clusters = varargin{val_pair + 1};
-            case 'tail'
-                tail = varargin{val_pair + 1};
-            case 'test'
-                test = varargin{val_pair + 1};
-            case 'min_cluster_size'
-                min_cluster_size = varargin{val_pair + 1};
-            case 'n_permutations'
-                n_permutations = varargin{val_pair + 1};
-        end
+% check second data argument. If none, use array of zeros.
+warning('off')
+if nargin > 1
+    if ~ischar(varargin{1})
+        dataB = varargin{1};
+        vararginds = 2:2:length(varargin);
+    else
+        dataB = zeros(size(dataA));
+        vararginds = 1:2:length(varargin);
     end
-end
-
-if tail == 0
-    alpha_thresh = alpha_thresh / 2;
-end
-
-% critical value to threshold t map
-t_crit = tinv(1-alpha_thresh, 2*size(data_A, 1) - 2);
-
-% create data for single sample test
-if isempty(data_B)
-    data_B=zeros(size(data_A));
-    test = 'paired';
-end
-
-independend_test = strcmpi(test, 'independend');
-
-% initial t map
-if independend_test
-    [~,~,~,test_stats] = ttest2(data_A,data_B);
 else
-    [~,~,~,test_stats] = ttest(data_A,data_B);
+    dataB = zeros(size(dataA));
+    vararginds = [];
 end
 
-T=test_stats.tstat;
+% default parameter settings
+subjects_dim = 1;
+alpha_thresh = 0.05;
+clusteralpha = 0.05;
+tail = 0;
+n_permutations = 10000;
+link_dim = 0;
 
-% find clusters
-[cluster_stats, cluster_labels] = find_clusters(T, double(T>t_crit));
-
-% find max cluster
-[pos_cluster_stats, pos_cluster] = compute_cluster_stats(cluster_stats, cluster_labels, tail, num_clusters, min_cluster_size, 'descend');
-
-% same as above for negative clusters
-[cluster_stats, cluster_labels] = find_clusters(T, double(T<-t_crit));
-[neg_cluster_stats, neg_cluster] = compute_cluster_stats(cluster_stats, cluster_labels, tail, num_clusters, min_cluster_size, 'ascend');
-
-% prepare permutation
-pos_perm_stats = zeros(1,n_permutations);
-neg_perm_stats = zeros(1,n_permutations);
-
-% Compute the permutation distribution
-for perm_ind=1:n_permutations
-    
-    % shuffle data
-    if independend_test
-        data_concat = [data_A;data_B];
-        shuffle_inds=randperm(size(data_concat,1));
-        shuffle_data=data_concat(shuffle_inds,:, :);
-        shuffle_data_A=shuffle_data(1:end/2,:, :);
-        shuffle_data_B=shuffle_data(end/2+1:end,:, :);
-        [~,~,~,test_stats] = ttest2(shuffle_data_A,shuffle_data_B);
-    else
-        shuffle_data_A = [];
-        shuffle_data_B = [];
-        for n = 1:size(data_A, 1)
-            data_concat = [data_A(n, :),data_B(n, :)];
-            shuffle_inds=randperm(size(data_concat, 2));
-            shuffle_data=data_concat(shuffle_inds);
-            shuffle_data_A = cat(1, shuffle_data_A, shuffle_data(shuffle_inds(1:end/2)));
-            shuffle_data_B =cat(1, shuffle_data_B, shuffle_data(shuffle_inds(end/2 + 1:end)));
-        end
-        shuffle_data_A = reshape(shuffle_data_A, n, size(data_A, 2), numel(data_A)/size(data_A, 1)/size(data_A, 2));
-        shuffle_data_B = reshape(shuffle_data_B, n, size(data_B, 2), numel(data_B)/size(data_B, 1)/size(data_B, 2));
-        [~,~,~,test_stats] = ttest(shuffle_data_A,shuffle_data_B);
-    end
-    tstats=test_stats.tstat;
-    
-    % same as before
-    cluster_stats = find_clusters(tstats, double(tstats>t_crit));
-    
-    if ~isempty(cluster_stats) && (tail == 0 || tail == 1)
-        pos_perm_stats(perm_ind)=max(cluster_stats);
-    else
-        pos_perm_stats(perm_ind)=-Inf; % -Inf is a value that is exceeded by all positive cluster statistics
-    end
-    
-    cluster_stats = find_clusters(tstats, double(tstats<-t_crit));
-    
-    if ~isempty(cluster_stats) && (tail == 0 || tail == -1)
-        neg_perm_stats(perm_ind)=min(cluster_stats);
-    else
-        neg_perm_stats(perm_ind)=Inf; % Inf is a value that is larger than all negative cluster statistics
+% check input parameters key value pairs and override defaults.
+for varargind = vararginds
+    switch varargin{varargind}
+        case 'dim'
+            subjects_dim = varargin{varargind + 1};
+        case 'alpha'
+            alpha_thresh = varargin{varargind + 1};
+        case 'tail'
+            tail = varargin{varargind + 1};
+        case 'permutations'
+            n_permutations = varargin{varargind + 1};
+        case 'clusteralpha'
+            clusteralpha = varargin{varargind + 1};
+        case 'link'
+            link_dim = varargin{varargind + 1};
     end
 end
 
-% calculate permutation p-values, separately for the positive and the negative cluster statistics
-permutation_p = compute_permutation_p(pos_cluster_stats, pos_perm_stats, tail, num_clusters, n_permutations, 'gt');
+t_crit = tinv(1-alpha_thresh, 2*size(dataA, subjects_dim) - 2);
+results = struct;
 
-pos_permutation_p = permutation_p;
-h_pos=double(permutation_p<alpha_thresh); % devide by two for two sided
+% cluster conectivity (-1 because 1 dimension gets reduced by the ttest)
+if (ndims(dataA) - 1) < 2
+    conn = [];
+else
+    conn = conndef(ndims(dataA) - 1, 'minimal');
+end
 
-permutation_p = compute_permutation_p(neg_cluster_stats, neg_perm_stats, tail, num_clusters, n_permutations, 'lt');
+% get relevant statistics and clusters.
+[tmap, c_stats_p, c_stats_n, c_labels_p, c_labels_n] = get_stats(...
+    dataA, dataB, alpha_thresh, subjects_dim, tail, t_crit, conn, link_dim);
 
-neg_permutation_p = permutation_p;
-h_neg=double(permutation_p<alpha_thresh);
+if isempty(c_stats_p)
+    c_stats_p = 0;
+end
+if isempty(c_stats_n)
+    c_stats_n = 0;
+end
+results.tmap = squeeze(tmap);
+results.pos.clusters = squeeze(stack_clusters(c_labels_p));
+results.neg.clusters = squeeze(stack_clusters(c_labels_n));
 
-% make results
-results = struct('H', struct('pos', h_pos, 'neg', h_neg), ...
-    'p', struct('pos', pos_permutation_p, 'neg', neg_permutation_p),...
-    'clusters', struct('pos', pos_cluster, 'neg', neg_cluster), ...
-    'T', T, 'test_stat', test);
+results.pos.stats = c_stats_p;
+results.neg.stats = c_stats_n;
+
+% prepare permutation distribution. If no cluster was found the respective
+% permutation receives the most extreme value.
+rand_stats_p = -Inf(1, n_permutations);
+rand_stats_n = Inf(1, n_permutations);
+
+% concatenate data over subject dimension for shuffling.
+data4shuffle = cat(subjects_dim, dataA, dataB);
+
+t = tic;
+for perm = 1:n_permutations
+    if toc(t) > 1
+        fprintf('iteration %d\n', perm)
+        t = tic;
+    end
     
-    function [cluster_stats, cluster_labels] = find_clusters(tstats, tstats_thresh)
-        % finds clusters in thresholded t-map and determines their size.
-        [cluster_labels,n_clusters] = bwlabeln(tstats_thresh);
-        cluster_stats=zeros(1,n_clusters);
+    % shuffle indices of subject dimension
+    rand_inds = randperm(size(data4shuffle, subjects_dim));
+    
+    % get 1st half of shuffled data
+    dataA_shuffle = tc_get_from_unknown(data4shuffle, subjects_dim, ...
+        rand_inds(1:end/2));
+    
+    % get 2nd half of shuffled data
+    dataB_shuffle = tc_get_from_unknown(data4shuffle, subjects_dim, ...
+        rand_inds(end/2+1:end));
+    
+    % obtain cluster stats
+    [~, rand_stat_p, rand_stat_n] = get_stats(...
+        dataA_shuffle, dataB_shuffle, alpha_thresh, subjects_dim, tail, ...
+        t_crit, conn, link_dim);
+    
+    % set highest (lowest) cluster value if random cluster(s) were formed
+    if ~isempty(rand_stat_p)
+        rand_stats_p(perm) = max(rand_stat_p);
+    end
+    
+    if ~isempty(rand_stat_n)
+        rand_stats_n(perm) = min(rand_stat_n);
+    end
+end
+
+% compute p value as the fraction of how many random cluster sums exceed
+% the data cluster sum.
+results.pos.p = sum(repmat(rand_stats_p, size(c_stats_p, 1), 1) > ...
+    repmat(c_stats_p, 1, size(rand_stats_p, 2)), 2) / n_permutations;
+
+results.neg.p = sum(repmat(rand_stats_n, size(c_stats_n, 1), 1) < ...
+    repmat(c_stats_n, 1, size(rand_stats_n, 2)), 2) / n_permutations;
+
+% check hypothesis for p < alpha
+if tail == 0
+   clusteralpha = clusteralpha / 2; 
+end
+results.pos.h = results.pos.p < clusteralpha;
+results.neg.h = results.neg.p < clusteralpha;
+
+    function [ts, sp, sn, cp, cn] = get_stats(da, db, a, d, t, tc, c, ld)
+        % standard ttest
+        [~,~,~,ts] = ttest(da, db, 'dim', d, 'alpha', a, 'tail', t);
+        ts=squeeze(ts.tstat);
         
-        for cluster_ind=1:n_clusters
-            cluster_sel=(cluster_labels==cluster_ind);
-            cluster_stats(cluster_ind)=sum(tstats(cluster_sel), 'all');
+        % find clusters given a certain connectivity (minimal)
+        if isempty(c)
+            cp = bwlabeln(ts>tc);
+            cn = bwlabeln(ts<-tc);
+        else
+            cp = bwlabeln(ts>tc, c);
+            cn = bwlabeln(ts<-tc, c);
         end
         
-    end
-
-    function [cluster_stats, cluster] = compute_cluster_stats(cluster_stats, cluster_labels, tail, num_clusters, min_cluster_size, direction)
-        % computes cluster statistics, sorts and selects cluster. 
-        cluster = zeros(size(cluster_labels));
-        
-        if ~isempty(cluster_stats) && (tail == 0 || tail == 1)
-            [cluster_stats, inds] = sort(cluster_stats, direction);
-            cluster_counter = 1;
-            if length(cluster_stats)<num_clusters
-                tmp_n_clusters = length(cluster_stats);
-            else
-                tmp_n_clusters = num_clusters;
+        % if desired, split clusters that are not connected along the link 
+        % dimension 
+        if ld > 0
+            % because of the squeeze of the tmap
+            if ld > d
+               ld = ld - 1; 
             end
-            counter = 0;
-            for ind = inds(1:tmp_n_clusters)
-                counter = counter + 1;
-                if sum(cluster_labels == ind, 'all') >= min_cluster_size
-                    cluster(cluster_labels == ind) = cluster_counter;
-                    cluster_counter = cluster_counter + 1;
-                else
-                    cluster(cluster_labels == ind) = 0;
-                    cluster_stats(counter) = [];
-                end
-            end
-        else
-            cluster_stats = [];
+            cp = tc_link_corr_clust(cp, ld);
+            cn = tc_link_corr_clust(cn, ld);
         end
+        
+        % compute cluster sums for all clusters
+        sp = arrayfun(@(x) sum(ts(cp == x), 'all'), unique(cp(cp>0)))';
+        sn = arrayfun(@(x) sum(ts(cn == x), 'all'), unique(cn(cn>0)))';
     end
 
-    function permutation_p = compute_permutation_p(cluster_stats, perm_stats, tail, num_clusters, n_permutations, direction)
-       % computes permutation p value, used to decide on H0.
-        if ~isempty(cluster_stats) && (tail == 0 || tail == 1)
-            permutation_p = [];
-            if length(cluster_stats)<num_clusters
-                tmp_n_clusters = length(cluster_stats);
-            else
-                tmp_n_clusters = num_clusters;
-            end
-            for cluster_stat = cluster_stats(1:tmp_n_clusters)
-                if strcmpi(direction, 'gt')
-                    permutation_p=cat(2, permutation_p, sum(double(perm_stats>cluster_stat), 'all')/n_permutations);
-                elseif strcmpi(direction, 'lt')
-                    permutation_p=cat(2, permutation_p, sum(double(perm_stats<cluster_stat), 'all')/n_permutations);
-                end
-            end
-        else
-            permutation_p=1;
-        end 
+    function stacked_c = stack_clusters(raw_clusters)
+        % helper function to stack clusters along new dimension
+        stack_dim = ndims(raw_clusters) + 1;
+        
+        % transform cluster labels map into stacked binary data map
+        stacked_c = [];
+        for val = unique(raw_clusters(raw_clusters>0))'
+            stacked_c = cat(stack_dim, stacked_c, raw_clusters == val);
+        end
     end
 end

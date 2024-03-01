@@ -31,10 +31,10 @@ elseif nargin == 2 && ischar(varargin{1})
     data_B = zeros(size(data_A));
     independend_test = isindependend(varargin{1});
 elseif nargin == 2 && ~ischar(varargin{1})
-    data_B = varargin{2};
+    data_B = varargin{1};
 elseif nargin == 3
     if ischar(varargin{2})
-        data_B = varargin{3};
+        data_B = varargin{1};
         independend_test = isindependend(varargin{2});
     else
         data_B = varargin{2};
